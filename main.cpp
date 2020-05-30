@@ -1,23 +1,8 @@
-
-//
-// Disclaimer:
-// ----------
-//
-// This code will work only if you selected window, graphics and audio.
-//
-// Note that the "Run Script" build phase will copy the required frameworks
-// or dylibs to your application bundle so you can execute it on any OS X
-// computer.
-//
-// Your resource files (images, sounds, fonts, ...) are also copied to your
-// application bundle. To get the path to these resources, use the helper
-// function `resourcePath()` from ResourcePath.hpp
-//
+// MAIN ON 300
 
 //TODO(JK): Epsilon distance;
 //TODO(JK) Window Scaling
 //TODO(JK): Engine GUI
-//TODO(JK): Randommness
 
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
@@ -25,21 +10,32 @@
 #include <math.h>
 #include <set>
 #include <climits>
+#include <cassert>
 //#include <random>
 
 #define COUT(x) std::cout<<#x<<": "<<x<<std::endl;
 
-int WINDOW_WIDTH = 1920;
-int WINDOW_HEIGHT = 1080;
-
-const int MAX_NUM_PARTICLES = 1000;
-const int MAX_NUM_EMITTERS = 3;
 
 const float EPSILON = 0.005f;
 
-const float gravity = -9.6;
 
 bool resized;
+
+struct WindowParameters {
+    unsigned height;
+    unsigned width;
+};
+
+struct WorldConstants {
+    float gravity;
+};
+
+struct RenderParameters {
+    unsigned maxNumParticles;
+    unsigned maxNumEmitters;
+    unsigned maxParticleSize;
+};
+
 
 struct physicsParticle
 {
@@ -58,10 +54,10 @@ struct physicsParticle
     
 };
 
-sf::Vector2f toNDC(const sf::Vector2f& v)
+sf::Vector2f toNDC(const sf::Vector2f& v, WindowParameters windowParameters)
 {
-    float newX = 2 * v.x / WINDOW_WIDTH - 1;
-    float newY = 2 * v.y / WINDOW_HEIGHT - 1; newY *= -1;
+    float newX = 2 * v.x / windowParameters.width - 1;
+    float newY = 2 * v.y / windowParameters.height - 1; newY *= -1;
     
     return sf::Vector2f(newX, newY);
 }
@@ -101,10 +97,10 @@ struct EmitterCmp
 };
 
 
-sf::Vector2f toSFML(const sf::Vector2f& v)
+sf::Vector2f toSFML(const sf::Vector2f& v, WindowParameters windowParameters)
 {
-    float newX = v.x*WINDOW_WIDTH/2 + WINDOW_WIDTH/2;
-    float newY = -(v.y * WINDOW_HEIGHT/2 - WINDOW_HEIGHT/2);
+    float newX = v.x*windowParameters.width/2 + windowParameters.width/2;
+    float newY = -(v.y * windowParameters.height/2 - windowParameters.height/2);
     return sf::Vector2f(newX, newY);
 }
 
@@ -145,22 +141,23 @@ T lerp (const T& a, const T& b, const float inter)
 }
 
 
-void emit(physicsParticle* particles, particleEmitter& e)
+void emit(physicsParticle* particles, particleEmitter& e, RenderParameters renderParm, WorldConstants worldConst)
 {
     physicsParticle newParticle;
     
    newParticle.position = e.position;
     newParticle.velocity = e.speed * lerp<sf::Vector2f>(e.direction, randVec2(), e.randomnessInDirection);
     newParticle.mass = e.pMass;
-    newParticle.acceleration = newParticle.mass * sf::Vector2f(0, gravity);
+    newParticle.acceleration = newParticle.mass * sf::Vector2f(0,worldConst.gravity);
     newParticle.lifespan = e.lifespan;
     newParticle.bounceFactor = e.bounceFactor;
+    assert(e.randomnessInSize <= 1.0 && e.randomnessInSize >= 0.0);
     newParticle.size = (unsigned)(rand01() * (1.0f - e.randomnessInSize) * e.maxParticleSize) + e.minParticleSize;
     newParticle.transparency = (unsigned char)(rand01() * (1.0f - e.randomnessInTransperency) * 255);
     
     
     
-    for(int i = 0; i < MAX_NUM_PARTICLES; ++i)
+    for(int i = 0; i < renderParm.maxNumParticles; ++i)
     {
         auto& curPart = particles[i];
         
@@ -177,10 +174,6 @@ float absol_V(float a)
     return a < EPSILON ? -a : a;
 }
 
-bool isWithinEpsilonDistance(float f, float from) {
-    return (fabs(f - from) < EPSILON);
-}
-
 /*void update(float dt, physicsParticle* particles, particleEmitter& e)
 {
     e.lastTimeEmitted += dt;
@@ -189,7 +182,7 @@ bool isWithinEpsilonDistance(float f, float from) {
         emit(particles, e);
         e.lastTimeEmitted = 0;
     }
-    for(int i = 0; i < MAX_NUM_PARTICLES; i++)
+    for(int i = 0; i < renderParm.maxNumParticles; i++)
     {
         physicsParticle& curPart = particles[i];
         
@@ -232,10 +225,10 @@ bool isWithinEpsilonDistance(float f, float from) {
 
 }*/
 
-void update(float dt, physicsParticle* particles, particleEmitter* emitters)
+void update(float dt, physicsParticle* particles, particleEmitter* emitters, RenderParameters renderParm, WindowParameters windowParameters, WorldConstants worldConst)
 {
     
-    for(int i = 0; i < MAX_NUM_EMITTERS; ++i)
+    for(int i = 0; i < renderParm.maxNumEmitters; ++i)
     {
         
         auto& e = emitters[i];
@@ -247,13 +240,13 @@ void update(float dt, physicsParticle* particles, particleEmitter* emitters)
 
         if (e.lastTimeEmitted > e.delay)
         {
-            emit(particles, e);
+            emit(particles, e, renderParm, worldConst);
             e.lastTimeEmitted = 0;
         }
     }
     
 
-    for (int i = 0; i < MAX_NUM_PARTICLES; ++i)
+    for (int i = 0; i < renderParm.maxNumParticles; ++i)
     {
         auto& curPart = particles[i];
 
@@ -264,14 +257,14 @@ void update(float dt, physicsParticle* particles, particleEmitter* emitters)
 
         auto nextPos = curPart.position + dt * curPart.velocity;
 
-        if (isWithinEpsilonDistance(nextPos.y, -1.0f) ||
-             isWithinEpsilonDistance(nextPos.y, 1.0f))
+        if (nextPos.y < -1.0f || 
+             nextPos.y > 1.0f)
         {
             curPart.velocity.y = -curPart.velocity.y;
             bounced = true;
         }
-        if (isWithinEpsilonDistance(nextPos.x, -1.0f) ||
-             isWithinEpsilonDistance(nextPos.x, 1.0f))
+        if (nextPos.x < -1.0f ||
+             nextPos.x >  1.0f)
         {
             curPart.velocity.x = -curPart.velocity.x;
             bounced = true;
@@ -303,25 +296,37 @@ void update(float dt, physicsParticle* particles, particleEmitter* emitters)
 
 
 
+
 int main(int, char const**)
 {
     
+    //Create window constraints
+    WindowParameters windowParameters;
+    windowParameters.width = 1920;
+    windowParameters.height = 1080;
     
+    WorldConstants worldConst;
+    worldConst.gravity = -9.6;
     
+   RenderParameters renderParm;
+    renderParm.maxNumParticles = 1000;
+    renderParm.maxNumEmitters = 3;
+    renderParm.maxParticleSize = 40; 
+
     // Create the main window
-    sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Particle's!");
+    sf::RenderWindow window(sf::VideoMode(windowParameters.width, windowParameters.height), "Particle's!");
     
     sf::Clock clock;
     float elapsed;
     
-    physicsParticle* particles = (physicsParticle*)malloc(sizeof(physicsParticle) * MAX_NUM_PARTICLES);
+    physicsParticle* particles = (physicsParticle*)malloc(sizeof(physicsParticle) * renderParm.maxNumParticles);
     
     particleEmitter* emitters = (particleEmitter*)malloc(sizeof(particleEmitter) * 5);
     
     
-    //srand(13333);
+    srand(13333); 
     
-    for(int i = 0; i < MAX_NUM_EMITTERS; i++)
+    for(int i = 0; i < renderParm.maxNumEmitters; i++)
     {
         auto& emitter = emitters[i];
         
@@ -333,19 +338,18 @@ int main(int, char const**)
         emitter.lastTimeEmitted = 0;
         emitter.randomnessInDirection = 0.08;
         emitter.randomnessInTransperency = 0.1;
-        emitter.randomnessInSize = 2.5;
+        emitter.randomnessInSize = 1.0;
         emitter.lifespan = 1;
         emitter.pMass = 0.6;
         emitter.hovering = 0;
         emitter.bounceFactor = 0.1;
-        emitter.minParticleSize = 6;
+        emitter.minParticleSize = 20;
         emitter.maxParticleSize = 40;
     }
     
     
-    bool grabbing = false;
-
     
+    bool grabbing = false;
     
     // Start the game loop
     while (window.isOpen())
@@ -353,8 +357,8 @@ int main(int, char const**)
         double dt = clock.restart().asSeconds(); //dt
         elapsed += dt;
         
-        //WINDOW_HEIGHT = window.getSize().y;
-        //WINDOW_WIDTH = window.getSize().x;
+        //windowParameters.height = window.getSize().y;
+        //windowParameters.width = window.getSize().x;
         
         sf::Event event;
         while (window.pollEvent(event))
@@ -371,11 +375,11 @@ int main(int, char const**)
             
             /*if(event.type == sf::Event::Resized)
             {
-                WINDOW_WIDTH = window.getSize().x;
-                WINDOW_HEIGHT = window.getSize().y;
+                windowParameters.width = window.getSize().x;
+                windowParameters.height = window.getSize().y;
                 
                 sf::View v;
-                v.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+                v.setSize(windowParameters.width, windowParameters.height);
                 window.setView(v);
             }*/
         }
@@ -383,12 +387,12 @@ int main(int, char const**)
         
         auto msPos = sf::Mouse::getPosition(window);
         
-        auto mousePosition = toNDC((sf::Vector2f)msPos); bool clicked = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
+        auto mousePosition = toNDC((sf::Vector2f)msPos, windowParameters); bool clicked = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
         
-        int wPe = -1; // which emitter picked
+        int whichEmitterPicked = -1; // which emitter picked
         float minDist = 100;
        
-        for(int i = 0; i < MAX_NUM_EMITTERS; ++i)
+        for(int i = 0; i < renderParm.maxNumEmitters; ++i)
         {
             auto& emitter = emitters[i];
             
@@ -397,13 +401,13 @@ int main(int, char const**)
             if(len < minDist)
             {
                 minDist = len;
-                wPe = i;
+                whichEmitterPicked = i;
             }
         }
         
        
-        if(minDist < 2.0f * emitters[wPe].radiusSprite / WINDOW_WIDTH) {
-            emitters[wPe].hovering = 1;
+        if(minDist < 2.0f * emitters[whichEmitterPicked].radiusSprite / windowParameters.width) {
+            emitters[whichEmitterPicked].hovering = 1;
             if(clicked)
             {
                 grabbing = 1;
@@ -411,14 +415,14 @@ int main(int, char const**)
                 grabbing = 0;
             }
         } else {
-            emitters[wPe].hovering = 0;
+            emitters[whichEmitterPicked].hovering = 0;
         }
         if(grabbing)
         {
-            emitters[wPe].position = mousePosition;
+            emitters[whichEmitterPicked].position = mousePosition;
         }
         
-        update(dt, particles, emitters);
+        update(dt, particles, emitters, renderParm, windowParameters, worldConst);
         
         // Clear screen
         window.clear();
@@ -427,14 +431,14 @@ int main(int, char const**)
         
         visible.setRadius(500);
         visible.setOrigin(500, 500);
-        visible.setPosition(toSFML({0, 0}));
+        visible.setPosition(toSFML({0, 0}, windowParameters));
         visible.setFillColor({0, 50, 0});
         window.draw(visible);
         
         visible.setRadius(10);
         visible.setOrigin(10, 10);
         
-        for(int i = 0; i < MAX_NUM_PARTICLES; i++)
+        for(int i = 0; i < renderParm.maxNumParticles; i++)
         {
             physicsParticle& curPart = particles[i];
             
@@ -445,7 +449,7 @@ int main(int, char const**)
             
             if(curPart.lifespan > 0)
             {
-                visible.setPosition(toSFML(curPart.position));
+                visible.setPosition(toSFML(curPart.position, windowParameters));
                 
                 window.draw(visible);
             }
@@ -454,7 +458,7 @@ int main(int, char const**)
         }
         
         visible.setFillColor({125, 0, 0});
-        for(int i = 0; i < MAX_NUM_EMITTERS; ++i)
+        for(int i = 0; i < renderParm.maxNumEmitters; ++i)
         {
             auto& emitter = emitters[i];
             visible.setFillColor({125, 0, 0});
@@ -464,7 +468,7 @@ int main(int, char const**)
                 visible.setFillColor({255, 0, 0});
             }
             visible.setOrigin({emitter.radiusSprite / 2, emitter.radiusSprite / 2});
-            visible.setPosition(toSFML(emitter.position));
+            visible.setPosition(toSFML(emitter.position, windowParameters));
             
             window.draw(visible);
 
