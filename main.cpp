@@ -1,5 +1,3 @@
-// MAIN ON 300
-
 //TODO(JK): Epsilon distance;
 //TODO(JK) Window Scaling
 //TODO(JK): Engine GUI
@@ -15,131 +13,14 @@
 
 #define COUT(x) std::cout<<#x<<": "<<x<<std::endl;
 
+#include "main.hpp"
+
+#include "math.cpp"
 
 const float EPSILON = 0.005f;
 
 
 bool resized;
-
-struct WindowParameters {
-    unsigned height;
-    unsigned width;
-};
-
-struct WorldConstants {
-    float gravity;
-};
-
-struct RenderParameters {
-    unsigned maxNumParticles;
-    unsigned maxNumEmitters;
-    unsigned maxParticleSize;
-};
-
-
-struct physicsParticle
-{
-    sf::Vector2f position;
-    sf::Vector2f velocity;
-    sf::Vector2f acceleration;
-    
-    int size;
-    float lifespan;
-    float mass;
-    
-    float bounceFactor;
-    unsigned char transparency;
-    
-    //visual
-    
-};
-
-sf::Vector2f toNDC(const sf::Vector2f& v, WindowParameters windowParameters)
-{
-    float newX = 2 * v.x / windowParameters.width - 1;
-    float newY = 2 * v.y / windowParameters.height - 1; newY *= -1;
-    
-    return sf::Vector2f(newX, newY);
-}
-
-struct particleEmitter
-{
-    sf::Vector2f position;
-    sf::Vector2f direction;
-    float radiusSprite;
-    float speed;
-    
-    float randomnessInDirection;
-    
-    float delay;
-    float lifespan;
-    float pMass;
-    float bounceFactor;
-    
-    float lastTimeEmitted;
-    float randomnessInSize;
-    float randomnessInTransperency;
-    
-    unsigned minParticleSize;
-    unsigned maxParticleSize;
-    
-    bool hovering;
-    
-};
-
-struct EmitterCmp
-{
-    bool operator() (const physicsParticle& a, const physicsParticle& b) const
-    {
-        return (a.lifespan > b.lifespan);
-    }
-    
-};
-
-
-sf::Vector2f toSFML(const sf::Vector2f& v, WindowParameters windowParameters)
-{
-    float newX = v.x*windowParameters.width/2 + windowParameters.width/2;
-    float newY = -(v.y * windowParameters.height/2 - windowParameters.height/2);
-    return sf::Vector2f(newX, newY);
-}
-
-float lenSq(const sf::Vector2f v)
-{
-    return (v.x * v.x + v.y * v.y);
-}
-
-float length(const sf::Vector2f& a)
-{
-    return sqrt(lenSq(a));
-}
-
-float rand01()
-{
-    return ((float)rand()/INT_MAX);
-}
-float randN1to1()
-{
-    return (2.0f * rand01() - 1);
-}
-
-sf::Vector2f randVec2()
-{
-    
-    
-    sf::Vector2f result(randN1to1(), randN1to1());
-    
-    
-    result = result / length(result);
-    return result;
-}
-
-template<typename T>
-T lerp (const T& a, const T& b, const float inter)
-{
-    return ((1 - inter) * a + inter * b);
-}
-
 
 void emit(physicsParticle* particles, particleEmitter& e, RenderParameters renderParm, WorldConstants worldConst)
 {
