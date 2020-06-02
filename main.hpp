@@ -1,6 +1,11 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#ifndef SFML_DEF
+#define SFML_DEF
+#include <SFML/Graphics.hpp>
+#endif
+
 struct WindowParameters {
     unsigned height;
     unsigned width;

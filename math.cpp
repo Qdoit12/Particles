@@ -1,5 +1,11 @@
 #ifndef MATH_H
 #define MATH_H
+
+#ifndef SFML_DEF //Just for safety
+#include <SFML/Graphics.hpp>
+#define SFML_DEF
+#endif
+
 /*
  * =====================================================================================
  *
@@ -70,5 +76,6 @@ T lerp (const T& a, const T& b, const float inter)
 {
     return ((1 - inter) * a + inter * b);
 }
+
 
 #endif

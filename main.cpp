@@ -1,9 +1,11 @@
 //TODO(JK): Epsilon distance;
 //TODO(JK) Window Scaling
 //TODO(JK): Engine GUI
-
+#ifndef SFML_DEF
+#define SFML_DEF
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
+#endif
 #include <iostream>
 #include <math.h>
 #include <set>
