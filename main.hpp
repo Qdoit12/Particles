@@ -19,8 +19,15 @@ struct RenderParameters {
     unsigned maxNumParticles;
     unsigned maxNumEmitters;
     unsigned maxParticleSize;
+    unsigned currentNumberEmitters;
 };
 
+struct emitterButton {
+    sf::Vector2f position;
+    sf::Vector2f size;
+    sf::Color color;
+   
+};
 
 struct physicsParticle
 {

@@ -57,61 +57,10 @@ float absol_V(float a)
     return a < EPSILON ? -a : a;
 }
 
-/*void update(float dt, physicsParticle* particles, particleEmitter& e)
-{
-    e.lastTimeEmitted += dt;
-    if(e.lastTimeEmitted > e.delay)
-    {
-        emit(particles, e);
-        e.lastTimeEmitted = 0;
-    }
-    for(int i = 0; i < renderParm.maxNumParticles; i++)
-    {
-        physicsParticle& curPart = particles[i];
-        
-        float bounceFactor = 0.7;
-        bool bounced = false;
-        
-        curPart.velocity += dt * curPart.acceleration;
-        auto nextPos = curPart.position + dt * curPart.velocity;
-        
-        if(isWithinEpsilonDistance(nextPos.y, -1.0f) || isWithinEpsilonDistance( nextPos.y, 1.0f))
-        {
-            curPart.velocity.y = -curPart.velocity.y;
-            bounced = true;
-        }
-        if(isWithinEpsilonDistance(nextPos.x, -1.0f) || isWithinEpsilonDistance( nextPos.x, 1.0f))
-        {
-            curPart.velocity.x = -curPart.velocity.x;
-            bounced = true;
-        }
-        
-        if(bounced)
-        {
-            std::cout << "BBOUNCED" << std::endl;
-            if(lenSq(curPart.velocity) < 0.01);
-            {
-                curPart.velocity = {};
-                curPart.acceleration = {};
-            }
-            curPart.velocity =  curPart.velocity * bounceFactor;
-        }
-        
-        
-        curPart.position += dt * curPart.velocity;
-        
-        curPart.lifespan -= dt;
-        
-        
-    }
-    
-
-}*/
-
 void update(float dt, physicsParticle* particles, particleEmitter* emitters, RenderParameters renderParm, WindowParameters windowParameters, WorldConstants worldConst)
 {
     
-    for(int i = 0; i < renderParm.maxNumEmitters; ++i)
+    for(int i = 0; i < renderParm.currentNumberEmitters; ++i)
     {
         
         auto& e = emitters[i];
@@ -177,23 +126,46 @@ void update(float dt, physicsParticle* particles, particleEmitter* emitters, Ren
 }
 
 
+void addEmitter(particleEmitter *emitters, RenderParameters *renderParm) {
+    if(renderParm->currentNumberEmitters == renderParm->maxNumEmitters)   {
+        return;
+    } 
 
+    auto& emitter = emitters[renderParm->currentNumberEmitters++];
+
+    emitter.radiusSprite = 20;
+    emitter.position = sf::Vector2f(randN1to1(), randN1to1());
+    emitter.direction = sf::Vector2f(0.0f, 1.0f);
+    emitter.speed = 3;
+    emitter.delay = 0.01;
+    emitter.lastTimeEmitted = 0;
+    emitter.randomnessInDirection = 0.08;
+    emitter.randomnessInTransperency = 0.1;
+    emitter.randomnessInSize = 1.0;
+    emitter.lifespan = 1;
+    emitter.pMass = 0.6;
+    emitter.hovering = 0;
+    emitter.bounceFactor = 0.1;
+    emitter.minParticleSize = 20;
+    emitter.maxParticleSize = 40;
+
+}
 
 
 int main(int, char const**)
 {
     
     //Create window constraints
-    WindowParameters windowParameters;
+    WindowParameters windowParameters = {};
     windowParameters.width = 1920;
     windowParameters.height = 1080;
     
-    WorldConstants worldConst;
+    WorldConstants worldConst = {};
     worldConst.gravity = -9.6;
     
-   RenderParameters renderParm;
+   RenderParameters renderParm = {};
     renderParm.maxNumParticles = 1000;
-    renderParm.maxNumEmitters = 3;
+    renderParm.maxNumEmitters = 5;
     renderParm.maxParticleSize = 40; 
 
     // Create the main window
@@ -204,31 +176,21 @@ int main(int, char const**)
     
     physicsParticle* particles = (physicsParticle*)malloc(sizeof(physicsParticle) * renderParm.maxNumParticles);
     
-    particleEmitter* emitters = (particleEmitter*)malloc(sizeof(particleEmitter) * 5);
+    particleEmitter* emitters = (particleEmitter*)malloc(sizeof(particleEmitter) * renderParm.maxNumEmitters);
     
-    
+    emitterButton ebutton = {};
+    ebutton.position = {-0.5f, 0.0f};
+    ebutton.size = {50,10};
+    ebutton.color = sf::Color(120, 120, 0);
+
+
+
     srand(13333); 
     
-    for(int i = 0; i < renderParm.maxNumEmitters; i++)
+    for(int i = 0; i < 1; i++)
     {
-        auto& emitter = emitters[i];
-        
-        emitter.radiusSprite = 20;
-        emitter.position = sf::Vector2f(randN1to1(), randN1to1());
-        emitter.direction = sf::Vector2f(0.0f, 1.0f);
-        emitter.speed = 3;
-        emitter.delay = 0.01;
-        emitter.lastTimeEmitted = 0;
-        emitter.randomnessInDirection = 0.08;
-        emitter.randomnessInTransperency = 0.1;
-        emitter.randomnessInSize = 1.0;
-        emitter.lifespan = 1;
-        emitter.pMass = 0.6;
-        emitter.hovering = 0;
-        emitter.bounceFactor = 0.1;
-        emitter.minParticleSize = 20;
-        emitter.maxParticleSize = 40;
-    }
+        addEmitter(emitters, &renderParm);
+   }
     
     
     
@@ -272,9 +234,21 @@ int main(int, char const**)
         
         auto mousePosition = toNDC((sf::Vector2f)msPos, windowParameters); bool clicked = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
         
+
+        if(clicked) {
+            auto distYPx = fabs(mousePosition.y - ebutton.position.y)*windowParameters.height;
+            auto distXPx = fabs(mousePosition.x - ebutton.position.x)*windowParameters.width;  
+            if(distYPx < ebutton.size.y && distXPx < ebutton.size.x)
+            {
+
+                addEmitter(emitters, &renderParm);
+            }
+        }
+
+
         int whichEmitterPicked = -1; // which emitter picked
         float minDist = 100;
-       
+         
         for(int i = 0; i < renderParm.maxNumEmitters; ++i)
         {
             auto& emitter = emitters[i];
@@ -311,7 +285,8 @@ int main(int, char const**)
         window.clear();
         
         sf::CircleShape visible;
-        
+
+
         visible.setRadius(500);
         visible.setOrigin(500, 500);
         visible.setPosition(toSFML({0, 0}, windowParameters));
@@ -341,7 +316,7 @@ int main(int, char const**)
         }
         
         visible.setFillColor({125, 0, 0});
-        for(int i = 0; i < renderParm.maxNumEmitters; ++i)
+        for(int i = 0; i < renderParm.currentNumberEmitters; ++i)
         {
             auto& emitter = emitters[i];
             visible.setFillColor({125, 0, 0});
@@ -357,6 +332,14 @@ int main(int, char const**)
 
         }
         
+        
+        sf::RectangleShape buttonSprite;
+        buttonSprite.setSize(ebutton.size);
+        buttonSprite.setPosition(toSFML(ebutton.position, windowParameters));
+        buttonSprite.setFillColor(ebutton.color);
+        buttonSprite.setOrigin({ebutton.size.x / 2, ebutton.size.y / 2});
+        window.draw(buttonSprite);
+
         // Update the window
         window.display();
     }
