@@ -1,3 +1,24 @@
+
+/*
+ * =====================================================================================
+ *
+ *       Project:  Particles!
+ *       File: Root (Main.cpp)
+ *
+ *    Description:  An experimental Particle engine based on SFML
+ *
+ *        Version:  0.2
+ *        Created:  30/05/2020 18:58:39
+ *  Last Revision:  28/07/2020 09:55:42
+ *       Compiler:  gcc(Linux), Apple Clang (MacOS)
+ *
+ *         Author:  Jacob Korba (), 
+ *   Organization:  
+ *
+ * =====================================================================================
+ */
+
+
 //TODO(JK): Epsilon distance;
 //TODO(JK) Window Scaling
 //TODO(JK): Engine GUI

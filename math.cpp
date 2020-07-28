@@ -6,24 +6,6 @@
 #define SFML_DEF
 #endif
 
-/*
- * =====================================================================================
- *
- *       Filename:  math.cpp
- *
- *    Description:  
- *
- *        Version:  1.0
- *        Created:  30/05/2020 18:58:39
- *       Revision:  none
- *       Compiler:  gcc
- *
- *         Author:  Jacob Korba (), 
- *   Organization:  
- *
- * =====================================================================================
- */
-
 sf::Vector2f toNDC(const sf::Vector2f& v, WindowParameters windowParameters)
 {
     float newX = 2 * v.x / windowParameters.width - 1;
